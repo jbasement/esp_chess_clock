@@ -100,6 +100,97 @@ private:
     gameMode(fixedT, variableT);
   }
 
+  // main game function that contains init and game loop
+  void gameMode(int fixedT, int variableT) {
+    // Init player times
+    float p1 = fixedT;
+    float p2 = fixedT;
+    float bufferP; // buffer for timer function
+
+    int moves = 2;
+    bool gameActive = false;
+    bool p1Active = true; // instead of assuming that p1 is active add a check function here first
+    unsigned long previousMillis = 0; // Variable to store the last time the value was updated
+
+    // main game loop
+    while (true) {
+      // Display layout init
+      display.clearDisplay();
+      display.setTextColor(WHITE);
+      display.setCursor(0, 10);
+      display.setFont(&FreeMono9pt7b);
+      display.println("Game mode");
+      display.print(fixedT);
+      display.print("+");
+      display.println(variableT);
+      display.print("Moves: ");
+      display.print(moves/2);
+      display.display();   
+
+      if (gameActive) {
+        unsigned long currentMillis = millis(); // Get the current time
+
+        if (p1Active) {
+          bufferP = p1;
+        } else {
+          bufferP = p2;
+        }
+
+        // This is the clock for the active player. Check if one second has passed
+        if (currentMillis - previousMillis >= secondInMillis) {
+          // Update the value every second
+          bufferP -= 1.0 / 60.0; // Decrease by one minute
+
+          // Print the updated value (you can replace this with your own logic)
+          Serial.print("Time remaining: ");
+          Serial.print(static_cast<int>(bufferP)); // Print the integer part
+          Serial.print(":");
+          int seconds = static_cast<int>((bufferP - static_cast<int>(bufferP)) * 60); // Extract the seconds
+          if (seconds < 10) {
+            Serial.print("0"); // Add leading zero if seconds is less than 10
+          }
+          Serial.println(seconds);
+
+          // Update the last time the value was updated
+          previousMillis = currentMillis;
+
+          // Check if the timer has reached 0:00
+          if (bufferP <= 0.0 && seconds <= 0) {
+            Serial.println("Time is up! Game over!"); // Print your message here
+            gameActive = false;
+          }
+        }
+  
+        if (p1Active) {
+          p1 = bufferP;
+        } else {
+          p2 = bufferP;
+        }
+
+      }
+     
+      // menu controls
+      if (Serial.available() > 0) {
+        char inputChar = Serial.read();
+        if (inputChar == 'b') { 
+          return;
+        } else if (!gameActive && inputChar == 's') { // replace 's' with magnetSensor. That indicates first move.     // Check which player has first move => Is magnet sensor activated or deactivated?
+          gameActive = true;
+        } else if (inputChar == 'e') { // start&stop game by pressing enter, by flipping gameActive bool
+          gameActive = !gameActive;
+        }  else if (inputChar == 'c') { // Check for 'c' input to switch players and increment time
+          if (p1Active) {
+            p1 += static_cast<float>(variableT) / 60.0;
+          } else {
+            p2 += static_cast<float>(variableT) / 60.0; 
+          }
+          p1Active = !p1Active;
+          moves++;
+        }
+      }
+    }
+  }
+
   void displayfixedT() {
     // Display the current fixed time value
     display.clearDisplay();
@@ -122,84 +213,6 @@ private:
     display.display();
   }
 
-  // main game function that contains init and game loop
-  void gameMode(int fixedT, int variableT) {
-    // Display layout init
-    display.clearDisplay();
-    display.setTextColor(WHITE);
-    display.setCursor(0, 10);
-    display.setFont(&FreeMono9pt7b);
-    display.println("Game mode");
-    display.print(fixedT);
-    display.print("+");
-    display.print(variableT);
-    display.display();
-
-    // Init player times
-    float p1 = fixedT;
-    float p2 = fixedT;
-    float bufferP; // buffer for timer function
-
-    Serial.println("Value of p1 is");
-    Serial.println(p1);
-    bool gameActive = false;
-    bool p1Active = true; // instead of assuming that p1 is active add a check function here first
-    unsigned long previousMillis = 0; // Variable to store the last time the value was updated
-
-    // main game loop
-    while (true) {
-      if (gameActive) {
-        if (p1Active) {
-          bufferP = p1;
-        } else {
-          bufferP = p2;
-        }
-
-        unsigned long currentMillis = millis(); // Get the current time
-
-        // Check if one second has passed
-        if (currentMillis - previousMillis >= secondInMillis) {
-          // Update the value every second
-          bufferP -= 1.0 / 60.0; // Decrease by one minute
-
-          // Print the updated value (you can replace this with your own logic)
-          Serial.print("Time remaining: ");
-          Serial.print(static_cast<int>(bufferP)); // Print the integer part
-          Serial.print(":");
-          int seconds = static_cast<int>((bufferP - static_cast<int>(bufferP)) * 60); // Extract the seconds
-          if (seconds < 10) {
-            Serial.print("0"); // Add leading zero if seconds is less than 10
-          }
-          Serial.println(seconds);
-
-          // Update the last time the value was updated
-          previousMillis = currentMillis;
-        }
-        
-        if (p1Active) {
-          p1 = bufferP;
-        } else {
-          p2 = bufferP;
-        }
-
-      }
-
-     
-      // menu controls
-      if (Serial.available() > 0) {
-        char inputChar = Serial.read();
-        if (inputChar == 'b') { 
-          return;
-        } else if (!gameActive && inputChar == 's') { // replace 's' with magnetSensor. That indicates first move.     // Check which player has first move => Is magnet sensor activated or deactivated?
-          gameActive = true;
-        } else if (inputChar == 'e') { // start&stop game by pressing enter, by flipping gameActive bool
-          gameActive = !gameActive;
-        } else if (inputChar == 'c') { // Change active player for testing with serial input
-          p1Active = !p1Active;
-        }
-      }
-    }
-  }
 };
 
 ModeHandler modeHandler;
