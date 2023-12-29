@@ -15,7 +15,7 @@ enum GameMode { MODE_5_0,
                 MODE_CUSTOM };
 
 GameMode modes[] = { MODE_5_0, MODE_5_3, MODE_10_3, MODE_15_5, MODE_CUSTOM };
-const char *modeStrings[] = { "5+0", "5+3", "10+3", "15+5", "Custom" };
+const char* modeStrings[] = { "5+0", "5+3", "10+3", "15+5", "Custom" };
 const int numModes = sizeof(modes) / sizeof(modes[0]);
 const int maxDisplayItems = 3;
 
@@ -38,9 +38,10 @@ public:
   }
 
 private:
-  int fixedTime = 0;
-  int variableTime = 0;
+  int fixedT, variableT = 0;
+  const unsigned long secondInMillis = 1000; // One second in milliseconds
 
+  // set fixedT and variableT based on user input
   void customTime() {
     // Ask for fixed time (0-99)
     fixed:
@@ -48,16 +49,16 @@ private:
     while (true) {
       if (Serial.available() > 0) {
         char inputChar = Serial.read();
-        if (inputChar == 'e') {
+        if (inputChar == 'e' && fixedT > 0) {
           break;  // Exit loop if 'e' is pressed
-        } else if (inputChar == 'u' && fixedTime < 99) {
-          fixedTime++;
-        } else if (inputChar == 'd' && fixedTime > 0) {
-          fixedTime--;
+        } else if (inputChar == 'u' && fixedT < 99) {
+          fixedT++;
+        } else if (inputChar == 'd' && fixedT > 0) {
+          fixedT--;
         } else if (inputChar == 'b') {
           return;
         }
-        displayFixedTime();
+        displayfixedT();
       }
     }
 
@@ -67,81 +68,137 @@ private:
       if (Serial.available() > 0) {
         char inputChar = Serial.read();
         if (inputChar == 'e') {
-          break;  // Exit loop if 'e' is pressed and variableTime is greater than 0
-        } else if (inputChar == 'u' && variableTime < 30) {
-          variableTime++;
-        } else if (inputChar == 'd' && variableTime > 0) {
-          variableTime--;
+          break;  // Exit loop if 'e' is pressed and variableT is greater than 0
+        } else if (inputChar == 'u' && variableT < 30) {
+          variableT++;
+        } else if (inputChar == 'd' && variableT > 0) {
+          variableT--;
         } else if (inputChar == 'b') {
           goto fixed;
         }
-        displayVariableTime();
+        displayvariableT();
       }
     }
 
-    // Display or process the custom time values as needed
-    Serial.print("Fixed Time: ");
-    Serial.println(fixedTime);
-    Serial.print("Variable Time: ");
-    Serial.println(variableTime);
-    
-    gameMode();    
+    gameMode(fixedT, variableT);
   }
 
+  // parse presetTime mode string into fixedT and variableT variables
   void presetTime(const String& time) {
-    
+
     Serial.println("In preset time function");
     // Find the position of the '+' character in the string
     int plusPos = time.indexOf('+');
 
     // Extract the fixed time substring from the beginning of the string
-    fixedTime = time.substring(0, plusPos).toInt();
-    Serial.println(fixedTime);
+    fixedT = time.substring(0, plusPos).toInt();
+    Serial.println(fixedT);
     // Extract the variable time substring after the '+' character
-    variableTime = time.substring(plusPos + 1).toInt();
-    Serial.println(variableTime);
-    
-    gameMode();
+    variableT = time.substring(plusPos + 1).toInt();
+    Serial.println(variableT);
+
+    gameMode(fixedT, variableT);
   }
 
-  void displayFixedTime() {
+  void displayfixedT() {
     // Display the current fixed time value
     display.clearDisplay();
     display.setTextColor(WHITE);
     display.setCursor(0, 10);
     display.setFont(&FreeMono9pt7b);
     display.print("Fixed Time: ");
-    display.println(fixedTime);
+    display.println(fixedT);
     display.display();
   }
 
-  void displayVariableTime() {
+  void displayvariableT() {
     // Display the current variable time value
     display.clearDisplay();
     display.setTextColor(WHITE);
     display.setCursor(0, 10);
     display.setFont(&FreeMono9pt7b);
     display.print("Variable Time: ");
-    display.println(variableTime);
+    display.println(variableT);
     display.display();
   }
 
-  void gameMode() {
+  // main game function that contains init and game loop
+  void gameMode(int fixedT, int variableT) {
+    // Display layout init
     display.clearDisplay();
     display.setTextColor(WHITE);
     display.setCursor(0, 10);
     display.setFont(&FreeMono9pt7b);
-    display.print("Game mode");
+    display.println("Game mode");
+    display.print(fixedT);
+    display.print("+");
+    display.print(variableT);
     display.display();
 
+    // Init player times
+    float p1 = fixedT;
+    float p2 = fixedT;
+    float bufferP; // buffer for timer function
+
+    Serial.println("Value of p1 is");
+    Serial.println(p1);
+    bool gameActive = false;
+    bool p1Active = true; // instead of assuming that p1 is active add a check function here first
+    unsigned long previousMillis = 0; // Variable to store the last time the value was updated
+
+    // main game loop
     while (true) {
+      if (gameActive) {
+        if (p1Active) {
+          bufferP = p1;
+        } else {
+          bufferP = p2;
+        }
+
+        unsigned long currentMillis = millis(); // Get the current time
+
+        // Check if one second has passed
+        if (currentMillis - previousMillis >= secondInMillis) {
+          // Update the value every second
+          bufferP -= 1.0 / 60.0; // Decrease by one minute
+
+          // Print the updated value (you can replace this with your own logic)
+          Serial.print("Time remaining: ");
+          Serial.print(static_cast<int>(bufferP)); // Print the integer part
+          Serial.print(":");
+          int seconds = static_cast<int>((bufferP - static_cast<int>(bufferP)) * 60); // Extract the seconds
+          if (seconds < 10) {
+            Serial.print("0"); // Add leading zero if seconds is less than 10
+          }
+          Serial.println(seconds);
+
+          // Update the last time the value was updated
+          previousMillis = currentMillis;
+        }
+        
+        if (p1Active) {
+          p1 = bufferP;
+        } else {
+          p2 = bufferP;
+        }
+
+      }
+
+     
+      // menu controls
       if (Serial.available() > 0) {
         char inputChar = Serial.read();
-        if (inputChar == 'b') {
+        if (inputChar == 'b') { 
           return;
+        } else if (!gameActive && inputChar == 's') { // replace 's' with magnetSensor. That indicates first move.     // Check which player has first move => Is magnet sensor activated or deactivated?
+          gameActive = true;
+        } else if (inputChar == 'e') { // start&stop game by pressing enter, by flipping gameActive bool
+          gameActive = !gameActive;
+        } else if (inputChar == 'c') { // Change active player for testing with serial input
+          p1Active = !p1Active;
         }
       }
-    }    
+    }
   }
 };
 
