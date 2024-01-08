@@ -8,21 +8,23 @@
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
 
+// 7bit display
 #define CLK_PIN D7
 #define DIO_PIN D0
-
-#define CLK_PIN2 3
-#define DIO_PIN2 1
+#define CLK_PIN2 D7
+#define DIO_PIN2 D6
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 TM1637Display timer(CLK_PIN, DIO_PIN);
 TM1637Display timer2(CLK_PIN2, DIO_PIN2);
 
 // Pin setup
-uint8_t buttonBackPin = D3;
+uint8_t buttonBackPin = 3;
 uint8_t buttonUpPin = D5;
 uint8_t buttonDownPin = D4;
-uint8_t buttonEnterPin = D6;
+uint8_t buttonEnterPin = 1;
+const int reedSwitchPin = D3;
+
 
 // game modes
 enum GameMode { MODE_5_0,
@@ -117,36 +119,27 @@ private:
     // Init player times
     float p1 = fixedT;
     float p2 = fixedT;
-    float bufferP; // buffer for timer function
 
     int moves = 2;  // Calculate moves and start at 2 so moves can be calculated using (moves/2)
     bool gameActive = false; // used to check if clock is running
-    bool p1Active = true; // instead of assuming that p1 is active add a check function here first
     unsigned long previousMillis = 0; // Variable to store the last time the value was updated
+    bool p1Active; // check on which side the chess switch is. Sensor is located on left side. Left side = P1; right side = P2
+    int currentSwitchState = digitalRead(reedSwitchPin); 
+    int previousSwitchState = currentSwitchState;
+   
+    // check who has first turn
+    if (currentSwitchState == LOW) {
+      p1Active = true;
+    } else {
+      p1Active = false;
+    }
 
     // main game loop
     while (true) {
       // Display layout init
-      display.clearDisplay();
-      display.setTextColor(WHITE);
-      display.setCursor(0, 10);
-      display.setFont(&FreeMono9pt7b);
-      display.println("Game mode");
-      display.print(fixedT);
-      display.print("+");
-      display.println(variableT);
-      display.print("Moves: ");
-      display.print(moves/2);
-      display.display();   
+      showActiveGame(moves);
 
-      // Show time on 7-bit display
-      int p1Min = static_cast<int>(p1);
-      int p1Sec = static_cast<int>((p1 - p1Min) * 60);      
-      int p2Min = static_cast<int>(p2);
-      int p2Sec = static_cast<int>((p2 - p2Min) * 60);         
-      timer.showNumberDecEx(p1Min * 100 + p1Sec, 0b11100000, true);
-      timer2.showNumberDecEx(p2Min * 100 + p2Sec, 0b11100000, true);
-
+      // Update player time 
       if (gameActive) {
         if (p1Active) {
           updatePlayerTime(p1, gameActive, previousMillis);
@@ -154,34 +147,19 @@ private:
           updatePlayerTime(p2, gameActive, previousMillis);
         }
       }
-     
-      // menu controls
-      if (Serial.available() > 0) {
-        char inputChar = Serial.read();
-        if (inputChar == 'b') { 
-          return;
-        } else if (!gameActive && inputChar == 's') { // replace 's' with magnetSensor. That indicates first move.     // Check which player has first move => Is magnet sensor activated or deactivated?
-          gameActive = true;
-        } else if (inputChar == 'e') { // start&stop game by pressing enter, by flipping gameActive bool
-          gameActive = !gameActive;
-        }  else if (inputChar == 'c') { // Check for 'c' input to switch players and increment time
-          if (p1Active) {
-            p1 += static_cast<float>(variableT) / 60.0;
-          } else {
-            p2 += static_cast<float>(variableT) / 60.0; 
-          }
-          p1Active = !p1Active;
-          moves++;
-        }
-      }
 
-      if (digitalRead(buttonBackPin) == LOW) {
+      // Show time on 7-bit display
+      showGameTime(p1, p2);
+
+      // Check reed sensor state
+      currentSwitchState = digitalRead(reedSwitchPin);
+
+      // Controls
+      if (digitalRead(buttonBackPin) == LOW) { // back to menu
         return;
-      } else if (digitalRead(buttonEnterPin) == LOW) {
-        // start & stop game by pressing enter, by flipping gameActive bool
+      } else if (digitalRead(buttonEnterPin) == LOW) {  // start & stop game by pressing enter, by flipping gameActive bool
         gameActive = !gameActive;
-      } else if (digitalRead(buttonDownPin) == LOW) { // Assuming 'c' is mapped to the Down button
-        // Check for 'c' input to switch players and increment time
+      } else if (gameActive && currentSwitchState != previousSwitchState) { // switch active player
         if (p1Active) {
           p1 += static_cast<float>(variableT) / 60.0;
         } else {
@@ -189,6 +167,9 @@ private:
         }
         p1Active = !p1Active;
         moves++;
+        previousSwitchState = currentSwitchState;
+      } else if  (!gameActive && currentSwitchState != previousSwitchState) { // start game when it is stopped and the switch is hit
+        gameActive = !gameActive;
       }
       delay(100);  // Add a small delay
     }
@@ -245,6 +226,28 @@ private:
     display.display();
   }
 
+  void showGameTime(float p1, float p2) {
+    int p1Min = static_cast<int>(p1);
+    int p1Sec = static_cast<int>((p1 - p1Min) * 60);      
+    int p2Min = static_cast<int>(p2);
+    int p2Sec = static_cast<int>((p2 - p2Min) * 60);         
+    timer.showNumberDecEx(p1Min * 100 + p1Sec, 0b11100000, true);
+    timer2.showNumberDecEx(p2Min * 100 + p2Sec, 0b11100000, true);
+  }
+
+  void showActiveGame(int moves) {
+    display.clearDisplay();
+    display.setTextColor(WHITE);
+    display.setCursor(0, 10);
+    display.setFont(&FreeMono9pt7b);
+    display.println("Game mode");
+    display.print(fixedT);
+    display.print("+");
+    display.println(variableT);
+    display.print("Moves: ");
+    display.print(moves/2);
+    display.display();      
+  } 
 };
 
 ModeHandler modeHandler;
@@ -281,11 +284,13 @@ void setup() {
       ;
   }
 
-  // Init buttons
+  // Init pins
   pinMode(buttonBackPin, INPUT_PULLUP);
   pinMode(buttonUpPin, INPUT_PULLUP);
   pinMode(buttonDownPin, INPUT_PULLUP);
   pinMode(buttonEnterPin, INPUT_PULLUP);
+  pinMode(reedSwitchPin, INPUT_PULLUP);
+
 
   // init RX and TX pins
   //GPIO 1 (TX) swap the pin to a GPIO.
