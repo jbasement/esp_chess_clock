@@ -291,13 +291,6 @@ void setup() {
   pinMode(buttonEnterPin, INPUT_PULLUP);
   pinMode(reedSwitchPin, INPUT_PULLUP);
 
-
-  // init RX and TX pins
-  //GPIO 1 (TX) swap the pin to a GPIO.
-  pinMode(1, FUNCTION_3); 
-  //GPIO 3 (RX) swap the pin to a GPIO.
-  pinMode(3, FUNCTION_3); 
-
   // Initialize the timer
   timer.setBrightness(0x0a); 
   timer2.setBrightness(0x0a);
