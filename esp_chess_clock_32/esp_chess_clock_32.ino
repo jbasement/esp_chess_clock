@@ -9,21 +9,21 @@
 #define SCREEN_HEIGHT 64
 
 // 7bit display
-#define CLK_PIN D7
-#define DIO_PIN D0
-#define CLK_PIN2 D7
-#define DIO_PIN2 D6
+#define CLK_PIN 19
+#define DIO_PIN 23
+#define CLK_PIN2 18
+#define DIO_PIN2 26
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 TM1637Display timer(CLK_PIN, DIO_PIN);
 TM1637Display timer2(CLK_PIN2, DIO_PIN2);
 
 // Pin setup
-uint8_t buttonBackPin = 3;
-uint8_t buttonUpPin = D5;
-uint8_t buttonDownPin = D4;
-uint8_t buttonEnterPin = 1;
-const int reedSwitchPin = D3;
+uint8_t buttonBackPin = 27;
+uint8_t buttonDownPin = 25;
+uint8_t buttonUpPin = 32;
+uint8_t buttonEnterPin = 12;
+const int reedSwitchPin = 10;
 
 
 // game modes
@@ -77,7 +77,7 @@ private:
         return;
       }
       displayfixedT();
-      delay(100);  // Add a small delay
+      delay(100);
     }
 
     delay(100);
@@ -134,6 +134,8 @@ private:
       p1Active = false;
     }
 
+    delay(100); // So game doesnt immediately start because enter is still pressed.
+
     // main game loop
     while (true) {
       // Display layout init
@@ -171,7 +173,7 @@ private:
       } else if  (!gameActive && currentSwitchState != previousSwitchState) { // start game when it is stopped and the switch is hit
         gameActive = !gameActive;
       }
-      delay(100);  // Add a small delay
+      delay(50);  // Add a small delay
     }
   }
 
