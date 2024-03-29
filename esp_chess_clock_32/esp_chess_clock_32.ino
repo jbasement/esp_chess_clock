@@ -2,8 +2,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <Fonts/FreeMono9pt7b.h>
-#include <TM1637Display.h>
-
+#include <TM1637TinyDisplay.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 64
@@ -15,8 +14,8 @@
 #define DIO_PIN2 18
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
-TM1637Display timer(CLK_PIN, DIO_PIN);
-TM1637Display timer2(CLK_PIN2, DIO_PIN2);
+TM1637TinyDisplay timer(CLK_PIN, DIO_PIN);
+TM1637TinyDisplay timer2(CLK_PIN2, DIO_PIN2);
 
 // Pin setup
 uint8_t buttonBackPin = 27;
@@ -220,8 +219,8 @@ private:
     int p1Sec = static_cast<int>((p1 - p1Min) * 60);      
     int p2Min = static_cast<int>(p2);
     int p2Sec = static_cast<int>((p2 - p2Min) * 60);         
-    timer.showNumberDecEx(p1Min * 100 + p1Sec, 0b11100000, true);
-    timer2.showNumberDecEx(p2Min * 100 + p2Sec, 0b11100000, true);
+    timer.showNumberDec(p1Min * 100 + p1Sec, 0b01000000, true);
+    timer2.showNumberDec(p2Min * 100 + p2Sec, 0b01000000, true);
   }
 
   void showActiveGame(int moves) {
@@ -248,8 +247,8 @@ void drawMenu() {
   display.setFont(&FreeMono9pt7b);
   display.println("Select mode:");
 
-  timer.showNumberDecEx(0 * 100 + 0, 0b11100000, true);
-  timer2.showNumberDecEx(0 * 100 + 0, 0b11100000, true);  
+  timer.showNumberDec(0 * 100 + 0, 0b01000000, true);
+  timer2.showNumberDec(0 * 100 + 0, 0b01000000, true);  
 
   for (int i = 0; i < maxDisplayItems; i++) {
     int index = (startIndex + i) % numModes;
@@ -266,8 +265,9 @@ void drawMenu() {
 void setup() {
   Serial.begin(115200);
  // Initialize the timer
-  timer.setBrightness(0x0a); 
-  timer2.setBrightness(0x0a);
+  timer.begin();
+  timer2.begin();
+  timer.flipDisplay(true);
 
   // Init display
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
