@@ -11,8 +11,8 @@
 // 7bit display
 #define CLK_PIN 19
 #define DIO_PIN 23
-#define CLK_PIN2 18
-#define DIO_PIN2 26
+#define CLK_PIN2 26
+#define DIO_PIN2 18
 
 Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, -1);
 TM1637Display timer(CLK_PIN, DIO_PIN);
@@ -65,7 +65,6 @@ private:
     delay(100);
     // Ask for fixed time (0-99)
     fixed:
-    Serial.println("Enter fixed time (0-99):");
     while (true) {
       if (digitalRead(buttonEnterPin) == LOW && fixedT > 0) {
         break;  // Exit loop if 'e' is pressed
@@ -82,7 +81,6 @@ private:
 
     delay(100);
     // Ask for variable time (0-30)
-    Serial.println("Enter variable time (0-30):");
     while (true) {
       if (digitalRead(buttonEnterPin) == LOW) {
         break;  // Exit loop if 'e' is pressed and variableT is greater than 0
@@ -107,7 +105,6 @@ private:
 
     // Extract the fixed time substring from the beginning of the string
     fixedT = time.substring(0, plusPos).toInt();
-    Serial.println(fixedT);
     // Extract the variable time substring after the '+' character
     variableT = time.substring(plusPos + 1).toInt();
 
@@ -184,23 +181,13 @@ private:
     if (currentMillis - previousMillis >= secondInMillis) {
       // Update the value every second
       playerTime -= 1.0 / 60.0; // Decrease by one minute
-
-      // Print the updated value (you can replace this with your own logic)
-      Serial.print("Time remaining: ");
-      Serial.print(static_cast<int>(playerTime)); // Print the integer part
-      Serial.print(":");
       int seconds = static_cast<int>((playerTime - static_cast<int>(playerTime)) * 60); // Extract the seconds
-      if (seconds < 10) {
-        Serial.print("0"); // Add leading zero if seconds is less than 10
-      }
-      Serial.println(seconds);
-
+      
       // Update the last time the value was updated
       previousMillis = currentMillis;
 
       // Check if the timer has reached 0:00
       if (playerTime <= 0.0 && seconds <= 0) {
-        Serial.println("Time is up! Game over!"); 
         gameActive = false;
       }
     }
@@ -278,10 +265,13 @@ void drawMenu() {
 
 void setup() {
   Serial.begin(115200);
+ // Initialize the timer
+  timer.setBrightness(0x0a); 
+  timer2.setBrightness(0x0a);
 
   // Init display
   if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println(F("SSD1306 allocation failed"));
+    Serial.println("SSD1306 allocation failed");
     for (;;)
       ;
   }
@@ -293,9 +283,6 @@ void setup() {
   pinMode(buttonEnterPin, INPUT_PULLUP);
   pinMode(reedSwitchPin, INPUT_PULLUP);
 
-  // Initialize the timer
-  timer.setBrightness(0x0a); 
-  timer2.setBrightness(0x0a);
 
   delay(2000);
   drawMenu();  // Draw the initial menu
@@ -308,8 +295,6 @@ void loop() {
   } else if (digitalRead(buttonDownPin) == LOW) {
     selectedItem = (selectedItem + 1) % numModes;
   } else if (digitalRead(buttonEnterPin) == LOW) {
-    Serial.print("Selected Mode: ");
-    Serial.println(selectedItem);
     modeHandler.handleMode(modes[selectedItem]);
   }
 
