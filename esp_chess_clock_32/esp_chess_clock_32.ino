@@ -61,7 +61,7 @@ private:
 
   // set fixedT and variableT based on user input
   void customTime() {
-    delay(100);
+    delay(200);
     // Ask for fixed time (0-99)
     fixed:
     while (true) {
@@ -78,7 +78,7 @@ private:
       delay(100);
     }
 
-    delay(100);
+    delay(200);
     // Ask for variable time (0-30)
     while (true) {
       if (digitalRead(buttonEnterPin) == LOW) {
