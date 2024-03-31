@@ -57,12 +57,12 @@ public:
 private:
   int fixedT = 1;
   int variableT = 0;
-  const unsigned long secondInMillis = 1000; // One second in milliseconds
+  const unsigned long secondInMillis = 1000;  // One second in milliseconds
 
   // set fixedT and variableT based on user input
   void customTime() {
     delay(200);
-    // Ask for fixed time (0-99)
+// Ask for fixed time (0-99)
     fixed:
     while (true) {
       if (digitalRead(buttonEnterPin) == LOW && fixedT > 0) {
@@ -116,13 +116,13 @@ private:
     float p1 = fixedT;
     float p2 = fixedT;
 
-    int moves = 2;  // Calculate moves and start at 2 so moves can be calculated using (moves/2)
-    bool gameActive = false; // used to check if clock is running
-    unsigned long previousMillis = 0; // Variable to store the last time the value was updated
-    bool p1Active; // check on which side the chess switch is. Sensor is located on left side. Left side = P1; right side = P2
-    int currentSwitchState = digitalRead(reedSwitchPin); 
+    int moves = 2;                     // Calculate moves and start at 2 so moves can be calculated using (moves/2)
+    bool gameActive = false;           // used to check if clock is running
+    unsigned long previousMillis = 0;  // Variable to store the last time the value was updated
+    bool p1Active;                     // check on which side the chess switch is. Sensor is located on left side. Left side = P1; right side = P2
+    int currentSwitchState = digitalRead(reedSwitchPin);
     int previousSwitchState = currentSwitchState;
-   
+
     // check who has first turn
     if (currentSwitchState == LOW) {
       p1Active = true;
@@ -130,14 +130,14 @@ private:
       p1Active = false;
     }
 
-    delay(100); // So game doesnt immediately start because enter is still pressed.
+    delay(100);  // So game doesnt immediately start because enter is still pressed.
 
     // main game loop
     while (true) {
       // Display layout init
       showActiveGame(moves);
 
-      // Update player time 
+      // Update player time
       if (gameActive) {
         if (p1Active) {
           updatePlayerTime(p1, gameActive, previousMillis);
@@ -153,20 +153,20 @@ private:
       currentSwitchState = digitalRead(reedSwitchPin);
 
       // Controls
-      if (digitalRead(buttonBackPin) == LOW) { // back to menu
+      if (digitalRead(buttonBackPin) == LOW) {  // back to menu
         return;
       } else if (digitalRead(buttonEnterPin) == LOW) {  // start & stop game by pressing enter, by flipping gameActive bool
         gameActive = !gameActive;
-      } else if (gameActive && currentSwitchState != previousSwitchState) { // switch active player
+      } else if (gameActive && currentSwitchState != previousSwitchState) {  // switch active player
         if (p1Active) {
           p1 += static_cast<float>(variableT) / 60.0;
         } else {
-          p2 += static_cast<float>(variableT) / 60.0; 
+          p2 += static_cast<float>(variableT) / 60.0;
         }
         p1Active = !p1Active;
         moves++;
         previousSwitchState = currentSwitchState;
-      } else if  (!gameActive && currentSwitchState != previousSwitchState) { // start game when it is stopped and the switch is hit
+      } else if (!gameActive && currentSwitchState != previousSwitchState) {  // start game when it is stopped and the switch is hit
         gameActive = !gameActive;
       }
       delay(50);  // Add a small delay
@@ -174,14 +174,14 @@ private:
   }
 
   void updatePlayerTime(float& playerTime, bool& gameActive, unsigned long& previousMillis) {
-    unsigned long currentMillis = millis(); // Get the current time
+    unsigned long currentMillis = millis();  // Get the current time
 
     // This is the clock for the active player. Check if one second has passed
     if (currentMillis - previousMillis >= secondInMillis) {
       // Update the value every second
-      playerTime -= 1.0 / 60.0; // Decrease by one minute
-      int seconds = static_cast<int>((playerTime - static_cast<int>(playerTime)) * 60); // Extract the seconds
-      
+      playerTime -= 1.0 / 60.0;                                                          // Decrease by one minute
+      int seconds = static_cast<int>((playerTime - static_cast<int>(playerTime)) * 60);  // Extract the seconds
+
       // Update the last time the value was updated
       previousMillis = currentMillis;
 
@@ -216,9 +216,9 @@ private:
 
   void showGameTime(float p1, float p2) {
     int p1Min = static_cast<int>(p1);
-    int p1Sec = static_cast<int>((p1 - p1Min) * 60);      
+    int p1Sec = static_cast<int>((p1 - p1Min) * 60);
     int p2Min = static_cast<int>(p2);
-    int p2Sec = static_cast<int>((p2 - p2Min) * 60);         
+    int p2Sec = static_cast<int>((p2 - p2Min) * 60);
     timer.showNumberDec(p1Min * 100 + p1Sec, 0b01000000, true);
     timer2.showNumberDec(p2Min * 100 + p2Sec, 0b01000000, true);
   }
@@ -233,9 +233,9 @@ private:
     display.print("+");
     display.println(variableT);
     display.print("Moves: ");
-    display.print(moves/2);
-    display.display();      
-  } 
+    display.print(moves / 2);
+    display.display();
+  }
 };
 
 ModeHandler modeHandler;
@@ -248,7 +248,7 @@ void drawMenu() {
   display.println("Select mode:");
 
   timer.showNumberDec(0 * 100 + 0, 0b01000000, true);
-  timer2.showNumberDec(0 * 100 + 0, 0b01000000, true);  
+  timer2.showNumberDec(0 * 100 + 0, 0b01000000, true);
 
   for (int i = 0; i < maxDisplayItems; i++) {
     int index = (startIndex + i) % numModes;
@@ -263,18 +263,13 @@ void drawMenu() {
 }
 
 void setup() {
-  Serial.begin(115200);
- // Initialize the timer
+  // !! This delay is very important to avoid a race condition between the esp and the peripherals
+  // As both are powered by battery at the same time and we have to make sure to first trying to access the peripherals when they are already up
+  delay(2000); 
   timer.begin();
   timer2.begin();
   timer.flipDisplay(true);
-
-  // Init display
-  if (!display.begin(SSD1306_SWITCHCAPVCC, 0x3C)) {
-    Serial.println("SSD1306 allocation failed");
-    for (;;)
-      ;
-  }
+  display.begin(SSD1306_SWITCHCAPVCC, 0x3C);
 
   // Init pins
   pinMode(buttonBackPin, INPUT_PULLUP);
@@ -283,8 +278,6 @@ void setup() {
   pinMode(buttonEnterPin, INPUT_PULLUP);
   pinMode(reedSwitchPin, INPUT_PULLUP);
 
-
-  delay(2000);
   drawMenu();  // Draw the initial menu
 }
 
