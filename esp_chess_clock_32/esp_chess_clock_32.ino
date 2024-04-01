@@ -266,7 +266,7 @@ void drawMenu() {
 
 void setup() {
   // !! This delay is very important to avoid a race condition between the esp and the peripherals
-  // As both are powered by battery at the same time and we have to make sure to first trying to access the peripherals when they are already up
+  // As both are powered by battery at the same time and we have to make sure to first trying to access the peripherals when they are already powerered
   delay(2000); 
   timer.begin();
   timer2.begin();
