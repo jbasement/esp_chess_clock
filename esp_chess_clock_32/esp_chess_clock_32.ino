@@ -62,7 +62,7 @@ private:
   // set fixedT and variableT based on user input
   void customTime() {
     delay(200);
-// Ask for fixed time (0-99)
+    // Ask for fixed time (0-99)
     fixed:
     while (true) {
       if (digitalRead(buttonEnterPin) == LOW && fixedT > 0) {
@@ -168,6 +168,8 @@ private:
         previousSwitchState = currentSwitchState;
       } else if (!gameActive && currentSwitchState != previousSwitchState) {  // start game when it is stopped and the switch is hit
         gameActive = !gameActive;
+        p1Active = !p1Active;
+        previousSwitchState = currentSwitchState;        
       }
       delay(50);  // Add a small delay
     }
