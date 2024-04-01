@@ -1,4 +1,4 @@
-# esp_chess_clock
+# Selfmade Chess Clock with 3D printed case based on ESP32
 Chess clock built with esp32 d1 mini
 
 This repo contains the wiring diagram, CAD file for the 3D printed case and the code to run on the esp32.
